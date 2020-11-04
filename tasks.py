@@ -5,6 +5,7 @@ import sys
 import subprocess as sp
 import argparse
 
+def empty():
 
 def echo(msg):
     print("\033[1;37m{0}\033[0m".format(msg))
