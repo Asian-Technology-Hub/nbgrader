@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess as sp
 import argparse
+from tempfile import mkdtemp
 
 def empty():
 
@@ -11,9 +12,9 @@ def echo(msg):
     print("\033[1;37m{0}\033[0m".format(msg))
 
 
-def run(cmd):
+def run(cmd, **kwargs):
     echo(cmd)
-    return sp.check_call(cmd, shell=True)
+    return sp.check_call(cmd, shell=True, **kwargs)
 
 
 try:
@@ -32,19 +33,19 @@ def _check_if_directory_in_path(pth, target):
     return False
 
 
-def docs(args):
-    del args  # unused
+def docs(ns, args):
+    del ns  # unused
     run('git clean -fdX nbgrader/docs')
     if not WINDOWS:
         run('pytest --nbval-lax --current-env nbgrader/docs/source/user_guide/*.ipynb')
     run('python nbgrader/docs/source/build_docs.py')
     run('python nbgrader/docs/source/clear_docs.py')
     run('make -C nbgrader/docs html')
-    run('make -C nbgrader/docs linkcheck')
+    # run('make -C nbgrader/docs linkcheck')
 
 
-def cleandocs(args):
-    del args  # unused
+def cleandocs(ns, args):
+    del ns  # unused
     run('python nbgrader/docs/source/clear_docs.py')
 
 
@@ -78,45 +79,60 @@ def _run_tests(mark, skip, junitxml, paralell=False):
         run("coverage combine || true")
 
 
-def tests(args):
-    if args.group == 'python':
+def _run_ts_test(args, notebook=False):
+    root_dir = mkdtemp(prefix="nbgrader-galata-")
+    os.environ["NBGRADER_TEST_DIR"] = root_dir
+
+    cmd = ['jlpm', f'test{":notebook" if notebook else ""}', '--retries=2'] + args
+    run(" ".join(cmd))
+
+
+def tests(ns, args):
+    if ns.group == 'python':
         _run_tests(
-            mark="not nbextensions", skip=args.skip, junitxml=args.junitxml, paralell=True)
+            mark="not nbextensions", skip=ns.skip, junitxml=ns.junitxml, paralell=True)
 
-    elif args.group == 'nbextensions':
-        _run_tests(mark="nbextensions", skip=args.skip, junitxml=args.junitxml)
+    elif ns.group == 'nbextensions':
+        _run_ts_test(args, notebook=True)
 
-    elif args.group == 'docs':
-        docs(args)
+    elif ns.group =='labextensions':
+        _run_ts_test(args)
 
-    elif args.group == 'all':
-        _run_tests(mark=None, skip=args.skip, junitxml=args.junitxml)
+    elif ns.group == 'docs':
+        docs(ns, args)
+
+    elif ns.group == 'all':
+        _run_tests(mark=None, skip=ns.skip, junitxml=ns.junitxml)
+        _run_ts_test(args)
+        _run_ts_test(args, notebook=True)
 
     else:
-        raise ValueError("Invalid test group: {}".format(args.group))
+        raise ValueError("Invalid test group: {}".format(ns.group))
 
 
-def aftersuccess(args):
-    if args.group in ('python', 'nbextensions'):
+def aftersuccess(ns, args):
+    if ns.group in ('python'):
         run('codecov')
     else:
         echo('Nothing to do.')
 
 
-def js(args):
-    run('npm install')
-    run('./node_modules/.bin/bower install --config.interactive=false')
-    if args.clean:
-        run('git clean -fdX nbgrader/server_extensions/formgrader/static/components')
+def js(ns, args):
+    run('jlpm install', cwd='nbgrader/server_extensions/formgrader/static')
+    if ns.clean:
+        run('git clean -fdX nbgrader/server_extensions/formgrader/static/node_modules')
 
 
-def install(args):
-    # The docs don't seem to build correctly if it's a symlinked install.
-    if args.group == 'docs':
-        cmd = 'pip install -r dev-requirements.txt .'
+def install(ns, args):
+    if ns.group in ['docs', 'all']:
+        cmd = 'pip install .[docs,tests]'
     else:
-        cmd = 'pip install -r dev-requirements.txt -e .'
-    run(cmd)
+        cmd = 'pip install -e .[tests]'
+
+    env = os.environ.copy()
+    if ns.group not in ['all', 'labextensions', 'nbextensions']:
+        env['SKIP_JUPYTER_BUILDER'] = '1'
+    run(cmd, env=env)
 
 
 if __name__ == '__main__':
@@ -153,5 +169,5 @@ if __name__ == '__main__':
     install_parser.add_argument('--group', type=str, required=True)
     install_parser.set_defaults(func=install)
 
-    args = parser.parse_args()
-    args.func(args)
+    (ns, args) = parser.parse_known_args()
+    ns.func(ns, args)

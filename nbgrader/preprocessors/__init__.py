@@ -8,6 +8,7 @@ from .savecells import SaveCells
 from .overwritecells import OverwriteCells
 from .checkcellmetadata import CheckCellMetadata
 from .execute import Execute
+from .instantiatetests import InstantiateTests
 from .getgrades import GetGrades
 from .clearoutput import ClearOutput
 from .limitoutput import LimitOutput
@@ -16,6 +17,7 @@ from .latesubmissions import AssignLatePenalties
 from .clearhiddentests import ClearHiddenTests
 from .clearmarkingscheme import ClearMarkScheme
 from .overwritekernelspec import OverwriteKernelspec
+from .ignorepattern import IgnorePattern
 
 __all__ = [
     "AssignLatePenalties",
@@ -28,6 +30,7 @@ __all__ = [
     "OverwriteCells",
     "CheckCellMetadata",
     "Execute",
+    "InstantiateTests",
     "GetGrades",
     "ClearOutput",
     "LimitOutput",
@@ -35,4 +38,5 @@ __all__ = [
     "ClearHiddenTests",
     "ClearMarkScheme",
     "OverwriteKernelspec",
+    "IgnorePattern",
 ]

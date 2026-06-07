@@ -15,10 +15,24 @@ Using nbgrader with JupyterHub
     :doc:`/user_guide/philosophy`
         More details on how the nbgrader hierarchy is structured.
 
-    `JupyterHub Documentation <https://jupyterhub.readthedocs.io/en/latest/getting-started/index.html>`_
+    `JupyterHub Documentation <https://jupyterhub.readthedocs.io/en/stable>`_
         Detailed documentation describing how JupyterHub works, which is very
         much required reading if you want to integrate the formgrader with
         JupyterHub.
+
+.. warning::
+
+    For security reasons, ``iframe`` are not allowed with JupyterHub from version 4.1. The
+    documentation about this security change is at
+    `mitigating-same-origin-deployments <https://jupyterhub.readthedocs.io/en/stable/explanation/websecurity.html#mitigating-same-origin-deployments>`_.
+
+    In the current version of nbgrader, the ``formgrader`` UI is embedded in an ``iframe``, to
+    be available in a new tab of Jupyterlab or Notebook. Therefore, the ``formgrader`` UI can't
+    be loaded when using ``jupyterhub>=4.1``, and shows a blank panel instead.
+
+    There are several ways to use the ``formgrader`` with ``jupyterhub>=4.1``, see details
+    at :ref:`jupyterhub-4.1`.
+
 
 For instructors running a class with JupyterHub, nbgrader offers several tools
 that optimize and enrich the instructors' and students' experience of sharing
@@ -37,7 +51,7 @@ integrate with JupyterHub so that all grading can occur on the same server.
     logfile so that you can more easily debug problems. To do so, you can set
     a config option, for example ``NbGrader.logfile = "/usr/local/share/jupyter/nbgrader.log"``.
 
-Each of these use cases also has a corresponding demo in the `demos folder <https://github.com/jupyter/nbgrader/tree/master/demos>`_ of the GitHub repository.
+Each of these use cases also has a corresponding demo in the `demos folder <https://github.com/jupyter/nbgrader/tree/main/demos>`_ of the GitHub repository.
 
 Example Use Case: One Class, One Grader
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,7 +82,7 @@ Example Use Case: One Class, Multiple Graders
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you have multiple graders, then you can set up a `shared notebook server
-<https://github.com/jupyterhub/jupyterhub/tree/master/examples/service-notebook>`_
+<https://github.com/jupyterhub/jupyterhub/tree/main/examples/service-notebook>`_
 as a JupyterHub service. I recommend creating a separate grader account (such
 as ``grader-course101``) for this server to have access to.
 
@@ -85,7 +99,7 @@ You will additionally need to install and enable the various nbgrader extensions
    :widths: 33 33 33 33
    :header-rows: 1
 
-   * - 
+   * -
      - Students
      - Instructors
      - Formgraders
@@ -189,7 +203,7 @@ JupyterHub Authentication
 
 With the advent of JupyterHubAuthPlugin, nbgrader will ask JupyterHub which students are enrolled in which courses and only show them assignments from those respective courses (note that the ``JupyterHubAuthPlugin`` requires JupyterHub version 0.8 or higher). Similarly, nbgrader will ask JupyterHub which instructors have access to which courses and only show them formgrader links for those courses.
 
-On the JupyterHub side of things, to differentiate student from instructor, groups need to be named ``formgrade-{course_id}`` for instructors and and grader accounts, and ``nbgrader-{course_id}`` for students. The course service additionally needs to have an API token set that is from a JupyterHub admin (see `JupyterHub documentation <https://jupyterhub.readthedocs.io/en/stable/reference/rest.html#create-an-api-token>`_).
+On the JupyterHub side of things, to differentiate student from instructor, groups need to be named ``formgrade-{course_id}`` for instructors and and grader accounts, and ``nbgrader-{course_id}`` for students. The course service additionally needs to have an API token set that is from a JupyterHub admin (see `JupyterHub documentation <https://jupyterhub.readthedocs.io/en/stable/howto/rest.html#create-an-api-token>`_).
 
 As in the case of multiple graders for a single class, if you have multiple
 classes on the same JupyterHub instance, then you will need to create multiple
@@ -331,3 +345,55 @@ API
     .. automethod:: add_student_to_course
 
     .. automethod:: remove_student_from_course
+
+
+.. _jupyterhub-4.1:
+
+Formgrader with ``jupyterhub>=4.1``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As explained above in the warning, ``jupyterhub>=4.1`` does not allow iframe for security
+reasons, which lead to blank panel instead of the ``formgrader`` UI.
+
+Below are different ways to use the ``formgrader`` UI with ``jupyterhub>=4.1``.
+
+Opening the ``formgrader`` UI in a new browser tab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Web browsers are able to open iframes in a new browser tab, which allows using the
+``formgrader`` without any additional setting on the jupyterhub server.
+For example with Firefox, right clicking on the iframe shows a context menu to open the
+contents in a new browser tab.
+
+.. image:: images/jupyterhub_4.1_iframe.png
+
+Although this solution isn't the most practical, it does allow to use ```formgrader``
+without having to update the configuration and without adding vulnerabilities to the application.
+
+Enabling JupyterHub subdomains
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Enabling per-user and per-service subdomains with ``JupyterHub.enable_subdomains = True``
+allows to securely use iframes with JupyterHub.
+With subdomains enabled, `frame-ancestors 'self'` allows embedding the iframe only on pages
+served by the user's own server.
+
+In this case, the ``"frame-ancestor 'self'"`` can be restored in the application:
+
+.. code:: python
+
+    c.ServerApp.tornado_settings = {}
+    c.ServerApp.tornado_settings["headers"] = {
+        "Content-Security-Policy": "frame-ancestors 'self'"
+    }
+
+in e.g. ``/usr/local/etc/jupyter/jupyter_server_config.py``.
+
+Trusting users (less secure)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you trust users and are aware of the security vulnerability, it is also possible to
+enable the iframe with the same configuration as above, without subdomains.
+
+This is the solution used in the JupyterHub docker
+`demo <https://github.com/jupyter/nbgrader/tree/main/demos>`_.

@@ -12,7 +12,7 @@ var AssignmentUI = Backbone.View.extend({
 
     events: {},
 
-    initialize: function () {
+    initialize: function (options) {
         this.$modal = undefined;
         this.$modal_duedate = undefined;
         this.$modal_timezone = undefined;
@@ -100,10 +100,11 @@ var AssignmentUI = Backbone.View.extend({
         // assignment name
         var name = this.model.get("name")
         this.$name.attr("data-order", name);
+
         this.$name.append($("<a/>")
-            .attr("target", "_blank")
-            .attr("href", base_url + "/tree/" + url_prefix + "/" + this.model.get("source_path"))
-            .text(name));
+            .text(name)
+            .map(linkTo("directory", url_prefix + "/" + this.model.get("source_path")))
+        );
 
         // duedate
         var duedate = this.model.get("duedate");
@@ -131,7 +132,9 @@ var AssignmentUI = Backbone.View.extend({
             .click(_.bind(this.openModal, this))
             .append($("<span/>")
                 .addClass("glyphicon glyphicon-pencil")
-                .attr("aria-hidden", "true")));
+                .attr("aria-hidden", "true")
+            )
+        );
 
         // generate student version
         this.$assign.append($("<a/>")
@@ -139,17 +142,20 @@ var AssignmentUI = Backbone.View.extend({
             .click(_.bind(this.assign, this))
             .append($("<span/>")
                 .addClass("glyphicon glyphicon-education")
-                .attr("aria-hidden", "true")));
+                .attr("aria-hidden", "true")
+            )
+        );
 
         // preview student version
         var release_path = this.model.get("release_path");
         if (release_path) {
             this.$preview.append($("<a/>")
-                .attr("target", "_blank")
-                .attr("href", base_url + "/tree/" + url_prefix + "/" + release_path)
+                .map(linkTo("directory", url_prefix + "/" + release_path))
                 .append($("<span/>")
                     .addClass("glyphicon glyphicon-search")
-                    .attr("aria-hidden", "true")));
+                    .attr("aria-hidden", "true")
+                )
+            );
         }
 
         // release
@@ -161,14 +167,18 @@ var AssignmentUI = Backbone.View.extend({
                     .click(_.bind(this.release, this))
                     .append($("<span/>")
                         .addClass("glyphicon glyphicon-cloud-upload")
-                        .attr("aria-hidden", "true")));
+                        .attr("aria-hidden", "true")
+                    )
+                );
             } else {
                 this.$release.append($("<a/>")
                     .attr("href", "#")
                     .click(_.bind(this.unrelease, this))
                     .append($("<span/>")
                         .addClass("glyphicon glyphicon-remove")
-                        .attr("aria-hidden", "true")));
+                        .attr("aria-hidden", "true")
+                    )
+                );
             }
         }
 
@@ -180,7 +190,9 @@ var AssignmentUI = Backbone.View.extend({
                     .click(_.bind(this.collect, this))
                     .append($("<span/>")
                         .addClass("glyphicon glyphicon-cloud-download")
-                        .attr("aria-hidden", "true")));
+                        .attr("aria-hidden", "true")
+                    )
+                );
             }
         }
 
@@ -192,27 +204,32 @@ var AssignmentUI = Backbone.View.extend({
         } else {
             this.$num_submissions.append($("<a/>")
                 .attr("href", base_url + "/formgrader/manage_submissions/" + this.model.get("name"))
-                .text(num_submissions));
+                .text(num_submissions)
+            );
         }
 
         // generate feedback
         if (num_submissions > 0) {
             this.$generate_feedback.append($("<a/>")
-		.attr("href", "#")
+                .attr("href", "#")
                 .click(_.bind(this.generate_feedback, this))
-		.append($("<span/>")
-		   .addClass("glyphicon glyphicon-comment")
-                   .attr("aria-hidden", "true")));
+                .append($("<span/>")
+                    .addClass("glyphicon glyphicon-comment")
+                    .attr("aria-hidden", "true")
+                )
+            );
         }
 
         //  feedback
         if (num_submissions > 0) {
             this.$release_feedback.append($("<a/>")
-		.attr("href", "#")
+                .attr("href", "#")
                 .click(_.bind(this.release_feedback, this))
-		.append($("<span/>")
-		   .addClass("glyphicon glyphicon-envelope")
-                   .attr("aria-hidden", "true")));
+                .append($("<span/>")
+                    .addClass("glyphicon glyphicon-envelope")
+                    .attr("aria-hidden", "true")
+                )
+            );
         }
 
     },
@@ -258,7 +275,7 @@ var AssignmentUI = Backbone.View.extend({
         this.$name.text("Please wait...");
         $.post(base_url + "/formgrader/api/assignment/" + this.model.get("name") + "/unrelease")
             .done(_.bind(this.unrelease_success, this))
-            .fail(_.bind(this.unrelase_failure, this));
+            .fail(_.bind(this.unrelease_failure, this));
     },
 
     unrelease_success: function (response) {
@@ -586,6 +603,7 @@ var loadAssignments = function () {
 
 var models = undefined;
 var views = [];
+
 $(window).on('load', function () {
     loadAssignments();
 });

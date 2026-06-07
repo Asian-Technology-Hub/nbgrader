@@ -5,6 +5,7 @@ import re
 import shutil
 import sys
 import nbgrader.apps
+import nbgrader.server_extensions.formgrader
 
 from textwrap import dedent
 from clear_docs import run, clear_notebooks
@@ -40,6 +41,7 @@ def autogen_command_line(root):
         'GenerateAssignmentApp',
         'GenerateConfigApp',
         'GenerateFeedbackApp',
+        'GenerateSolutionApp',
         'ListApp',
         'NbGraderApp',
         'QuickStartApp',
@@ -91,6 +93,7 @@ def autogen_config(root):
 
     print('Generating example configuration file')
     config = nbgrader.apps.NbGraderApp().document_config_options()
+    config += nbgrader.server_extensions.formgrader.formgrader.FormgradeExtension().document_config_options()
     destination = os.path.join(root, 'configuration', 'config_options.rst')
     with open(destination, 'w') as f:
         f.write(header)
@@ -149,25 +152,14 @@ def convert_notebooks(root):
         if os.path.split(dirname)[1] == ".ipynb_checkpoints":
             continue
 
-        build_directory = os.path.join('extra_files', dirname)
-        if not os.path.exists(build_directory):
-            os.makedirs(build_directory)
-
         for filename in sorted(filenames):
             if filename.endswith('.ipynb'):
                 run([
                     sys.executable, '-m', 'jupyter', 'nbconvert',
                     '--to', 'html',
-                    "--FilesWriter.build_directory='{}'".format(build_directory),
+                    "--FilesWriter.build_directory='{}'".format(dirname),
                     os.path.join(dirname, filename)
                 ])
-
-            else:
-                src = os.path.join(dirname, filename)
-                dest = os.path.join(build_directory, filename)
-                if os.path.exists(dest):
-                    os.remove(dest)
-                shutil.copy(src, dest)
 
     os.chdir(cwd)
 

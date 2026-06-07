@@ -3,12 +3,13 @@ import json
 import functools
 
 from tornado import web
-from notebook.base.handlers import IPythonHandler
+from jupyter_server.base.handlers import JupyterHandler
+from jupyter_server.utils import url_path_join, url_is_absolute
 from ...api import Gradebook
 from ...apps.api import NbGraderAPI
 
 
-class BaseHandler(IPythonHandler):
+class BaseHandler(JupyterHandler):
 
     @property
     def base_url(self):
@@ -16,15 +17,15 @@ class BaseHandler(IPythonHandler):
 
     @property
     def db_url(self):
-        return self.settings['nbgrader_db_url']
+        return self.coursedir.db_url
 
     @property
     def url_prefix(self):
-        return self.settings['nbgrader_url_prefix']
+        return self.settings['nbgrader_formgrader'].url_prefix
 
     @property
     def coursedir(self):
-        return self.settings['nbgrader_coursedir']
+        return self.settings['nbgrader_formgrader'].coursedir
 
     @property
     def authenticator(self):
@@ -41,7 +42,10 @@ class BaseHandler(IPythonHandler):
 
     @property
     def mathjax_url(self):
-        return self.settings['mathjax_url']
+        url = self.settings.get("mathjax_url", "")
+        if not url or url_is_absolute(url):
+            return url
+        return url_path_join(self.base_url or "/", url)
 
     @property
     def exporter(self):
@@ -50,6 +54,7 @@ class BaseHandler(IPythonHandler):
     @property
     def api(self):
         level = self.log.level
+        self.coursedir.parent.load_config_file()
         api = NbGraderAPI(
             self.coursedir, self.authenticator, parent=self.coursedir.parent)
         api.log_level = level

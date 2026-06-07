@@ -142,6 +142,18 @@ class CourseDirectory(LoggingConfigurable):
         )
     ).tag(config=True)
 
+    source_with_tests_directory = Unicode(
+        'source_with_tests',
+        help=dedent(
+            """
+            The name of the directory that contains notebooks with both solutions
+            and instantiated test code (i.e., all AUTOTEST directives are removed
+            and replaced by actual test code). This corresponds to the
+            `nbgrader_step` variable in the `directory_structure` config option.
+            """
+        )
+    ).tag(config=True)
+
     submitted_directory = Unicode(
         'submitted',
         help=dedent(
@@ -169,6 +181,17 @@ class CourseDirectory(LoggingConfigurable):
         help=dedent(
             """
             The name of the directory that contains assignment feedback after
+            grading has been completed. This corresponds to the `nbgrader_step`
+            variable in the `directory_structure` config option.
+            """
+        )
+    ).tag(config=True)
+
+    solution_directory = Unicode(
+        'solution',
+        help=dedent(
+            """
+            The name of the directory that contains the assignment solution after
             grading has been completed. This corresponds to the `nbgrader_step`
             variable in the `directory_structure` config option.
             """
@@ -262,6 +285,17 @@ class CourseDirectory(LoggingConfigurable):
         help=dedent(
             """
             Maximum size of files (in kilobytes; default: 100Mb).
+            Upon copying directories recursively, larger files will be
+            ignored with a warning.
+            """
+        )
+    ).tag(config=True)
+
+    max_dir_size = Integer(
+        100000,
+        help=dedent(
+            """
+            Maximum size of directories (in kilobytes; default: 100Mb).
             Upon copying directories recursively, larger files will be
             ignored with a warning.
             """

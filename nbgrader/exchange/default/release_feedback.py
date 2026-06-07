@@ -61,24 +61,18 @@ class ExchangeReleaseFeedback(Exchange, ABCExchangeReleaseFeedback):
                 continue
 
             feedback_dir = os.path.split(html_file)[0]
-            submission_dir = self.coursedir.format_path(
-                self.coursedir.submitted_directory, student_id,
-                self.coursedir.assignment_id)
 
             timestamp = open(os.path.join(feedback_dir, 'timestamp.txt')).read()
-            nbfile = os.path.join(submission_dir, "{}.ipynb".format(notebook_id))
-            unique_key = make_unique_key(
-                self.coursedir.course_id,
-                self.coursedir.assignment_id,
-                notebook_id,
-                student_id,
-                timestamp)
+            with open(os.path.join(feedback_dir, "submission_secret.txt")) as fh:
+                submission_secret = fh.read()
 
-            self.log.debug("Unique key is: {}".format(unique_key))
-            checksum = notebook_hash(nbfile, unique_key)
-            dest = os.path.join(self.dest_path, "{}.html".format(checksum))
+            checksum = notebook_hash(secret=submission_secret, notebook_id=notebook_id)
+            dest = os.path.join(self.dest_path, "{}-tmp.html".format(checksum))
 
             self.log.info("Releasing feedback for student '{}' on assignment '{}/{}/{}' ({})".format(
                 student_id, self.coursedir.course_id, self.coursedir.assignment_id, notebook_id, timestamp))
             shutil.copy(html_file, dest)
+            # Copy to temporary location and mv to update atomically.
+            updated_feedback = os.path.join(self.dest_path, "{}.html". format(checksum))
+            shutil.move(dest, updated_feedback)
             self.log.info("Feedback released to: {}".format(dest))

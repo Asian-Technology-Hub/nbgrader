@@ -17,9 +17,13 @@ depends_on = None
 
 
 def _get_or_create_table(*args):
-    try:
+    ctx = op.get_context()
+    con = op.get_bind()
+    table_exists = ctx.dialect.has_table(con, args[0])
+
+    if not table_exists:
         table = op.create_table(*args)
-    except sa.exc.OperationalError:
+    else:
         table = sa.sql.table(*args)
     return table
 
@@ -38,13 +42,14 @@ def upgrade():
 
     # If the course table is empty, create a default course
     connection = op.get_bind()
-    res = connection.execute("select id from course")
+    res = connection.execute(sa.text("select id from course"))
     results = res.fetchall()
     default_course = "default_course"
 
     if len(results) == 0:
         connection.execute(
-            "INSERT INTO course (id) VALUES ('{}')".format(default_course))
+            sa.text("INSERT INTO course (id) VALUES ('{}')".format(default_course))
+        )
 
     with op.batch_alter_table("assignment") as batch_op:
 
